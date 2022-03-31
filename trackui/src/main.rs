@@ -2,7 +2,12 @@ use crate::components::control::{Planes, Control};
 use crate::components::map_component::{Plane, MapComponent, Point};
 use yew::prelude::*;
 mod components;
+use zmq::{Context, Message, Error};
+mod reception;
 
+
+
+//set up of the main component which hold the other ones--------------------------------------
 enum Msg {
     SelectPlane(Plane),
 }
@@ -64,7 +69,15 @@ impl Component for Model {
     }
 }
 
+
+
+
+
+
+
 fn main() {
+
+//YEW----------------------------------------------------------
     yew::initialize();
     let document = yew::utils::document();
     let app = document.query_selector("#yew").unwrap().unwrap();
@@ -72,4 +85,10 @@ fn main() {
     yew::App::<Model>::new().mount(app);
 
     yew::run_loop();
+
+//ZeroMQ--------------------------------------------------------
+    let ctx = Context::new();
+    let addr = "tcp://127.0.0.1:1234";
+    let sock = ctx.socket(zmq::PULL).unwrap();
+    sock.bind(addr).unwrap();
 }
