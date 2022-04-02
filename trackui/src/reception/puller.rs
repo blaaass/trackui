@@ -10,7 +10,11 @@ use crate::components::global::{Model, Msg};
 pub fn listening(sock: &Socket, ctx: &yew::html::Scope<Model>) {
     loop {
         let flag = 0;
-        let message = sock.recv_string(flag).unwrap().unwrap();
+        let message = match sock.recv_string(flag).unwrap() {
+            Ok(msg) => msg,
+            _ => panic!("Erreur de réception"),
+        };
+
         analysis(message, ctx);
     }
 }
