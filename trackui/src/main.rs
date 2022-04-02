@@ -1,76 +1,14 @@
-use crate::components::control::{Planes, Control};
-use crate::components::map_component::{Plane, MapComponent, Point};
+use crate::components::control::{Control};
+use crate::components::map_component::{MapComponent, Point};
 use yew::prelude::*;
-mod components;
 use zmq::{Context, Message, Error};
-mod reception;
 
-
-
-//set up of the main component which hold the other ones--------------------------------------
-enum Msg {
-    SelectPlane(Plane),
-}
-
-struct Model {
-    plane: Plane,
-    planes: Planes,
-    link: ComponentLink<Self>,
-}
-
-impl Component for Model {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let icao1 = Plane {
-            callsign: "KLM1023".to_string(),
-            lat: Point(43.606214f64, 2.241295f64),
-        };
-        let icao2 = Plane {
-            callsign: "FRA8175".to_string(),
-            lat: Point(53f64, 3f64),
-        };
-        let planes: Planes = Planes {
-            list: vec![icao1, icao2],
-        };
-        let plane = planes.list[0].clone();
-        Self { plane, planes, link }
-    }
-
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::SelectPlane(plane) => {
-                self.plane = self
-                    .planes
-                    .list
-                    .iter()
-                    .find(|c| c.callsign == plane.callsign)
-                    .unwrap()
-                    .clone();
-            }
-        }
-        true
-    }
-
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
-    }
-
-    //view of the selected city
-    fn view(&self) -> Html {
-        let cb = self.link.callback(|name| Msg::SelectPlane(name));
-        html! {
-            <>
-                <MapComponent plane=&self.plane planes=&self.planes/>
-                <Control select_plane=cb planes=&self.planes/>
-            </>
-        }
-    }
-}
-
-
-
+use crate::object::plane::Plane;
+use crate::object::planelist::Planelist;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+pub mod components;
+pub mod reception;
+pub mod object;
 
 
 
@@ -82,13 +20,16 @@ fn main() {
     let document = yew::utils::document();
     let app = document.query_selector("#yew").unwrap().unwrap();
 
-    yew::App::<Model>::new().mount(app);
+    let a  = yew::App::<components::global::Model>::new().mount(app);
 
     yew::run_loop();
 
-//ZeroMQ--------------------------------------------------------
+    //ZeroMQ--------------------------------------------------------
     let ctx = Context::new();
     let addr = "tcp://127.0.0.1:1234";
     let sock = ctx.socket(zmq::PULL).unwrap();
     sock.bind(addr).unwrap();
+
+
+    reception::puller::listening(&sock, &a);
 }

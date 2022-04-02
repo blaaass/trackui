@@ -1,15 +1,21 @@
 #![allow(dead_code)]
 use zmq::{Socket};
+use crate::object::{planelist, plane};
+use yew::{html::ImplicitClone, prelude::*};
+use crate::components::global::{Model, Msg};
 
-pub fn listening(sock: &Socket) {
+
+
+
+pub fn listening(sock: &Socket, ctx: &yew::html::Scope<Model>) {
     loop {
         let flag = 0;
         let message = sock.recv_string(flag).unwrap().unwrap();
-        analysis(message);
+        analysis(message, ctx);
     }
 }
 
-fn analysis(msg : String) {
+fn analysis(msg : String, ctx: &yew::html::Scope<Model>) {
     let mut buffer: String = "".into();
     let mut data: Vec<String> = vec![];
 
@@ -24,27 +30,5 @@ fn analysis(msg : String) {
         }
     };
 
-    match data[0].as_str() {
-        "P" => update_position(&data),
-        "S" => update_speed(&data),
-        "C" => update_callsign(&data),
-        "D" => update_db(&data),
-        _ => (),
-    };
-}
-
-fn update_position(data: &Vec<String>) {
-
-}
-
-fn update_speed(data: &Vec<String>) {
-    
-}
-
-fn update_callsign(data: &Vec<String>) {
-    
-}
-
-fn update_db(data: &Vec<String>) {
-    
+    ctx.send_message(Msg::UpdatePlane(data));
 }

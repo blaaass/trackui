@@ -7,42 +7,35 @@ use yew::{
     web_sys::{Element, HtmlElement, Node},
     Html,
 };
-//test-------------------------------------------------
-use yew::services::storage;
-use yew::services::StorageService;
-use yew::services::storage::Area;
+
 //-----------------------------------------------------
-use super::control::Planes;
 use serde_json::{Result, Value};
 use serde::{Serialize, Deserialize};
-use std::path::Path;
+use crate::object::planelist::Planelist;
+use crate::object::plane::Plane;
+
+//set atenna postion [SHOULD BE AN OPTION AT THE INITIALISATION OF THE PRG]
+const ANTENNA: (f64,f64) = (48.6339, 2.44417);
 
 
 pub enum Msg {}
 
 pub struct MapComponent {
     map: Map,
-    lat: Point,
+    selection: String,  //icao of the selected plane
     container: HtmlElement,
 }
-
-impl ImplicitClone for Plane {}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Point(pub f64, pub f64);
 
 
-//plane ----------------------------------------
-#[derive(Clone, Debug)]
-pub struct Plane {
-    pub callsign: String,
-    pub lat: Point,
-}
+
 
 #[derive(Properties, Clone)]
 pub struct Props {
-    pub plane: Plane,
-    pub planes: Planes,
+    pub planes: Planelist,
+    pub plane_selected: String, //icao of the selected plane
 }
 
 
@@ -59,25 +52,26 @@ impl Component for MapComponent {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
+    fn create(mut props: Self::Properties, _link: ComponentLink<Self>) -> Self {
         let container: Element = document().create_element("div").unwrap();
         let container: HtmlElement = container.dyn_into().unwrap();
         container.set_class_name("map");
         let leaflet_map = Map::new_with_element(&container, &JsValue::NULL);
+        let mut splane = props.planes.planelist.get_mut(&props.plane_selected).unwrap();
         let screen = Self {
             map: leaflet_map,
             container,
-            lat: props.plane.lat,
+            selection: "".into(),
         };
-        for aircraft in props.planes.list {
-            screen.add_plane(aircraft);
+        for aircraft in props.planes.planelist {
+            screen.add_plane(aircraft.1);
         };
         screen
     }
 
     fn rendered(&mut self, first_render: bool) {
         if first_render {
-            self.map.setView(&LatLng::new(self.lat.0, self.lat.1), 11.0);
+            self.map.setView(&LatLng::new(ANTENNA.0, ANTENNA.1), 11.0);    //center the map on the antenna for the first render
             add_tile_layer(&self.map);
         }
     }
@@ -87,11 +81,11 @@ impl Component for MapComponent {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.lat == props.plane.lat {
+        if self.selection == props.plane_selected {
             false
         } else {
-            self.lat = props.plane.lat;
-            self.map.setView(&LatLng::new(self.lat.0, self.lat.1), 11.0);
+            self.selection = props.plane_selected;
+            self.map.setView(&props.planes.get_pos_selection(&self.selection), 11.0);
             true
         }
     }
@@ -127,9 +121,10 @@ struct IconOptions {
 
 impl MapComponent {
 
+    //need to add the trajectory of the selected plane
     pub fn add_plane(&self, plane: Plane) -> ShouldRender {
         //paramètrage du marqueur de l'avion
-        let mark = Marker::new(&LatLng::new(plane.lat.0,plane.lat.1), &JsValue::NULL);
+        let mark = Marker::new(&LatLng::new(plane.position.0.into(),plane.position.1.into()), &JsValue::NULL);
         let i = Icon::new( &JsValue::from_serde(&IconOptions {
             iconUrl: "ressources/plane.png".into(),
             iconSize: [50,50],

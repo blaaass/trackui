@@ -1,4 +1,5 @@
-use super::map_component::Plane;
+use crate::object::planelist::Planelist;
+use crate::object::plane::Plane;
 use yew::services::ConsoleService;
 use yew::{html::ImplicitClone, prelude::*};
 
@@ -8,20 +9,17 @@ pub enum Msg {
 
 pub struct Control {
     link: ComponentLink<Self>,
-    planes: Vec<Plane>,
+    planes: Planelist,
     props: Props,
 }
 
-#[derive(Clone)]
-pub struct Planes {
-    pub list: Vec<Plane>,
-}
 
-impl ImplicitClone for Planes {}
+
+
 
 #[derive(Properties, Clone)]
 pub struct Props {
-    pub planes: Planes,
+    pub planes: Planelist,
     pub select_plane: Callback<Plane>,
 }
 
@@ -42,7 +40,7 @@ impl Component for Control {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Control {
             link,
-            planes: props.planes.list.clone(),
+            planes: props.planes.clone(),
             props,
         }
     }
@@ -66,9 +64,8 @@ impl Component for Control {
             <div class="control component-container">
                 <h1>{"Plane list"}</h1>
                 <div>
-                    {for self.planes.iter().map(|plane| Self::button(&self, plane.clone()))}
+                    {for self.planes.planelist.iter().map(|plane| Self::button(&self, plane.1.clone()))}
                     </div>
-
             </div>
         }
     }
