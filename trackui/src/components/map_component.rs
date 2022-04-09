@@ -132,7 +132,8 @@ impl MapComponent {
         let mark = Marker::new(&LatLng::new(plane.lat.0,plane.lat.1), &JsValue::NULL);
         let i = Icon::new( &JsValue::from_serde(&IconOptions {
             iconUrl: "ressources/plane.png".into(),
-            iconSize: [50,50],
+            match zoom() {
+                int:: 1=> iconSize: [50,50],
         })
         .expect("Unable to serialize icon options"),
     );
